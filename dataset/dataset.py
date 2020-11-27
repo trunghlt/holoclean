@@ -140,7 +140,8 @@ class Dataset:
                 # use entity IDs as _tid_'s directly
                 df.rename({entity_col: "_tid_"}, axis="columns", inplace=True)
 
-            self.numerical_attrs = numerical_attrs or []
+            self.numerical_attrs = numerical_attrs or [c for c in self.raw_data.df_raw.columns.values 
+                                                       if self.raw_data.df_raw[c].dtype in ('int64', 'float64')]
             all_attrs = self.raw_data.get_attributes()
             self.categorical_attrs = [
                 attr for attr in all_attrs if attr not in self.numerical_attrs
@@ -157,7 +158,7 @@ class Dataset:
                         df_correct_type[attr].isnull(), attr
                     ] = NULL_REPR
                 for attr in self.numerical_attrs:
-                    df_correct_type[attr] = df_correct_type[attr].astype(float)
+                    df_correct_type[attr] = df_correct_type[attr].astype(self.raw_data.df_raw[attr].dtype)
 
                 df_correct_type.to_sql(
                     self.raw_data.name,
