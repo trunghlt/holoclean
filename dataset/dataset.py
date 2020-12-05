@@ -140,7 +140,8 @@ class Dataset:
                 # use entity IDs as _tid_'s directly
                 df.rename({entity_col: "_tid_"}, axis="columns", inplace=True)
 
-            self.numerical_attrs = numerical_attrs or []
+            self.numerical_attrs = numerical_attrs or [c for c in self.raw_data.df_raw.columns.values 
+                                                       if self.raw_data.df_raw[c].dtype in ('int64', 'float64')]
             all_attrs = self.raw_data.get_attributes()
             self.categorical_attrs = [
                 attr for attr in all_attrs if attr not in self.numerical_attrs
@@ -157,7 +158,7 @@ class Dataset:
                         df_correct_type[attr].isnull(), attr
                     ] = NULL_REPR
                 for attr in self.numerical_attrs:
-                    df_correct_type[attr] = df_correct_type[attr].astype(float)
+                    df_correct_type[attr] = df_correct_type[attr].astype(self.raw_data.df_raw[attr].dtype)
 
                 df_correct_type.to_sql(
                     self.raw_data.name,
@@ -222,7 +223,7 @@ class Dataset:
         try:
             self.aux_table[aux_table] = Table(aux_table.name, Source.DF, df=df)
             if store:
-                self.aux_table[aux_table].store_to_db(self.engine.engine)
+                self.aux_table[aux_table].store_to_db(self.engine.engine, schema=self.engine.dbschema)
             if index_attrs:
                 self.aux_table[aux_table].create_df_index(index_attrs)
             if store and index_attrs:
@@ -451,7 +452,7 @@ class Dataset:
         repaired_df = pd.DataFrame.from_records(init_records)
         name = self.raw_data.name + "_repaired"
         self.repaired_data = Table(name, Source.DF, df=repaired_df)
-        self.repaired_data.store_to_db(self.engine.engine, self.raw_data.df_raw)
+        self.repaired_data.store_to_db(self.engine.engine, self.raw_data.df_raw, schema=self.engine.dbschema)
         status = "DONE generating repaired dataset"
         toc = time.clock()
         total_time = toc - tic
