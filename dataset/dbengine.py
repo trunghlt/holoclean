@@ -36,7 +36,7 @@ class DBengine:
     def generate_hash():
         h = hashlib.sha1()
         h.update(str(time.time()).encode('utf-8'))
-        return h.hexdigest()[:10]
+        return f"temp_{h.hexdigest()[:10]}"
 
     def execute_queries(self, queries):
         """
