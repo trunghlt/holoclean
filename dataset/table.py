@@ -1,5 +1,5 @@
 from enum import Enum
-from holoclean.utils import NULL_REPR
+from ..utils import NULL_REPR
 import logging
 
 from tqdm import tqdm
