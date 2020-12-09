@@ -1,8 +1,10 @@
 from enum import Enum
+from holoclean.utils import NULL_REPR
 import logging
 
 from tqdm import tqdm
 import pandas as pd
+import numpy as np
 
 
 class Source(Enum):
@@ -125,7 +127,7 @@ class Table:
                     ):
                         df_reverted.at[indx, attr] = raw_value
                     else:
-                        df_reverted.at[indx, attr] = repair_value
+                        df_reverted.at[indx, attr] = np.nan if repair_value == NULL_REPR else repair_value
 
         return df_reverted
 
