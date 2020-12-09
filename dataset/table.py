@@ -25,7 +25,6 @@ class Table:
         exclude_attr_cols=["_tid_"],
         fpath=None,
         df=None,
-        schema_name=None,
         table_query=None,
         db_engine=None,
     ):
@@ -65,7 +64,7 @@ class Table:
                 fpath, dtype=str, na_values=na_values, encoding="utf-8"
             )
             self.df_raw = pd.read_csv(
-                fpath, dtype=str, na_values=na_values, encoding="utf-8"
+                fpath, na_values=na_values, encoding="utf-8"
             )
 
             # Normalize the dataframe: drop null columns, convert to lowercase strings, and strip whitespaces.
@@ -92,27 +91,30 @@ class Table:
                 raise Exception(
                     "ERROR while loading table. DB connection expected. Please provide <db_engine>."
                 )
-            self.df = pd.read_sql_table(name, db_engine.conn, schema=schema_name)
+            with db_engine.engine.connect() as conn:
+                self.df = pd.read_sql_table(name, con=conn, schema=db_engine.dbschema)
         elif src == Source.SQL:
             if table_query is None or db_engine is None:
                 raise Exception(
                     "ERROR while loading table. SQL Query and DB connection expected. Please provide <table_query> and <db_engine>."
                 )
             db_engine.create_db_table_from_query(self.name, table_query)
-            self.df = pd.read_sql_table(name, db_engine.conn)
+            with db_engine.engine.connect() as conn:
+                self.df = pd.read_sql_table(name, con=conn, schema=db_engine.dbschema)
 
     def _revert_normalized_value(self, df_raw: pd.DataFrame) -> pd.DataFrame:
+        # indicate it's not the data table
         if df_raw.empty:
             return self.df
 
-        self._df_reverted = pd.DataFrame()
+        df_reverted = pd.DataFrame()
 
         logging.info("Reverting normalized values")
         r_size, _ = self.df.shape
 
         for attr in tqdm(self.df.columns.values):
             if attr in self.exclude_attr_cols:
-                self._df_reverted[attr] = self.df[attr]
+                df_reverted[attr] = self.df[attr]
             else:
                 for indx in range(r_size):
                     raw_value = df_raw[attr].iloc[indx]
@@ -121,11 +123,11 @@ class Table:
                         str(raw_value).strip().lower()
                         == str(repair_value).strip().lower()
                     ):
-                        self._df_reverted.at[indx, attr] = raw_value
+                        df_reverted.at[indx, attr] = raw_value
                     else:
-                        self._df_reverted.at[indx, attr] = repair_value
+                        df_reverted.at[indx, attr] = repair_value
 
-        return self._df_reverted
+        return df_reverted
 
     def store_to_db(
         self,
@@ -134,14 +136,17 @@ class Table:
         if_exists="replace",
         index=False,
         index_label=None,
+        schema=None,
     ):
-        # TODO: This version supports single session, single worker.
-        self._revert_normalized_value(df_raw).to_sql(
+        df = self._revert_normalized_value(df_raw)
+        
+        df.to_sql(
             self.name,
             db_conn,
             if_exists=if_exists,
             index=index,
             index_label=index_label,
+            schema=schema,
         )
 
     def get_attributes(self):
