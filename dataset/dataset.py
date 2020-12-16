@@ -163,8 +163,7 @@ class Dataset:
                     ] = NULL_REPR
 
                 for attr in self.numerical_attrs:
-                    if attr in self.raw_data.df_raw.columns:
-                        df_correct_type[attr] = df_correct_type[attr].astype(self.raw_data.df_raw[attr].dtype)
+                    df_correct_type[attr] = df_correct_type[attr].astype(self.raw_data.df_raw[attr].dtype)
 
                 df_correct_type.to_sql(
                     self.raw_data.name,
