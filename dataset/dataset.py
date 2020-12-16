@@ -130,6 +130,10 @@ class Dataset:
             )
 
             df = self.raw_data.df
+            # revert dropped columns
+            for column in self.raw_data.dropped_columns:
+                df[column] = np.NaN
+
             # Add _tid_ column to dataset that uniquely identifies an entity.
             # If entity_col is not supplied, use auto-incrementing values.
             # Otherwise we use the entity values directly as _tid_'s.
@@ -157,8 +161,10 @@ class Dataset:
                     df_correct_type.loc[
                         df_correct_type[attr].isnull(), attr
                     ] = NULL_REPR
+
                 for attr in self.numerical_attrs:
-                    df_correct_type[attr] = df_correct_type[attr].astype(self.raw_data.df_raw[attr].dtype)
+                    if attr in self.raw_data.df_raw.columns:
+                        df_correct_type[attr] = df_correct_type[attr].astype(self.raw_data.df_raw[attr].dtype)
 
                 df_correct_type.to_sql(
                     self.raw_data.name,
