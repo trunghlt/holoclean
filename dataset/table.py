@@ -70,6 +70,7 @@ class Table:
             )
 
             # Normalize the dataframe: drop null columns, convert to lowercase strings, and strip whitespaces.
+            self.dropped_columns = []
             for attr in self.df.columns.values:
                 if self.df[attr].isnull().all():
                     logging.warning(
@@ -77,6 +78,7 @@ class Table:
                         attr,
                     )
                     self.df.drop(labels=[attr], axis=1, inplace=True)
+                    self.dropped_columns.append(attr)
                     continue
                 if attr in exclude_attr_cols:
                     continue
