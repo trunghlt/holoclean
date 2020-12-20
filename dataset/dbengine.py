@@ -46,7 +46,7 @@ class DBengine:
         """
         logging.debug('Preparing to execute %d queries.', len(queries))
         tic = time.clock()
-        results = self._apply_func(partial(_execute_query, conn_args=self.conn), [(idx, q) for idx, q in enumerate(queries)])
+        results = self._apply_func(partial(_execute_query, conn_uri=self.conn, conn_args={'options': '-csearch_path={}'.format(self.dbschema)}), [(idx, q) for idx, q in enumerate(queries)])
         toc = time.clock()
         logging.debug('Time to execute %d queries: %.2f secs', len(queries), toc-tic)
         return results
@@ -60,7 +60,7 @@ class DBengine:
         logging.debug('Preparing to execute %d queries.', len(queries))
         tic = time.clock()
         results = self._apply_func(
-            partial(_execute_query_w_backup, conn_args=self.conn, timeout=self.timeout),
+            partial(_execute_query_w_backup, conn_uri=self.conn, conn_args={'options': '-csearch_path={}'.format(self.dbschema)}, timeout=self.timeout),
             [(idx, q) for idx, q in enumerate(queries)])
         toc = time.clock()
         logging.debug('Time to execute %d queries: %.2f secs', len(queries), toc-tic)
@@ -123,12 +123,12 @@ class DBengine:
         self.engine.execute(DropSchema(self.dbschema, cascade=True))
 
 
-def _execute_query(args, conn_args):
+def _execute_query(args, conn_uri, conn_args):
     query_id = args[0]
     query = args[1]
     logging.debug("Starting to execute query %s with id %s", query, query_id)
     tic = time.clock()
-    engine = sql.create_engine(conn_args)
+    engine = sql.create_engine(conn_uri, connect_args=conn_args)
     with engine.connect() as conn:
         res = conn.execute(query).fetchall()
     toc = time.clock()
@@ -136,13 +136,13 @@ def _execute_query(args, conn_args):
     return res
 
 
-def _execute_query_w_backup(args, conn_args, timeout):
+def _execute_query_w_backup(args, conn_uri, conn_args, timeout):
     query_id = args[0]
     query = args[1][0]
     query_backup = args[1][1]
     logging.debug("Starting to execute query %s with id %s", query, query_id)
     tic = time.clock()
-    engine = sql.create_engine(conn_args)
+    engine = sql.create_engine(conn_uri, connect_args=conn_args)
     with engine.connect() as conn:
         conn.execute("SET statement_timeout to %d;" % timeout)
         try:
