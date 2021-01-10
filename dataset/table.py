@@ -83,7 +83,7 @@ class Table:
                 if attr in exclude_attr_cols:
                     continue
 
-                self.df[attr] = self.df[attr].str.strip().str.lower()
+                self.df[attr] = self.df[attr].str.strip()
         elif src == Source.DF:
             if df is None:
                 raise Exception(
