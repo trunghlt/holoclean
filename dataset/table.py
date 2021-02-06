@@ -117,6 +117,10 @@ class Table:
         r_size, _ = self.df.shape
 
         for attr in tqdm(self.df.columns.values):
+            print("########################")
+            print("wtf attr", attr)
+            print(df_reverted.dtypes)
+
             if attr in self.exclude_attr_cols:
                 df_reverted[attr] = self.df[attr]
             else:
@@ -127,7 +131,16 @@ class Table:
                         str(raw_value).strip().lower()
                         == str(repair_value).strip().lower()
                     ):
-                        df_reverted.at[indx, attr] = raw_value
+                        try:
+                            df_reverted.at[indx, attr] = raw_value
+                        except ValueError:
+                            # This exception might happen in:
+                            #   The first value is None, so the pandas decide to put the column as a float64 (due to None is NaN value)
+                            #   but other values is string
+                            if isinstance(raw_value, str):
+                                df_reverted[attr] = df_reverted[attr].astype(str)
+                            df_reverted.at[indx, attr] = raw_value
+                            
                     else:
                         df_reverted.at[indx, attr] = np.nan if repair_value == NULL_REPR else repair_value
 
