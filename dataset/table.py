@@ -117,10 +117,6 @@ class Table:
         r_size, _ = self.df.shape
 
         for attr in tqdm(self.df.columns.values):
-            print("########################")
-            print("wtf attr", attr)
-            print(df_reverted.dtypes)
-
             if attr in self.exclude_attr_cols:
                 df_reverted[attr] = self.df[attr]
             else:
